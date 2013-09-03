@@ -42,6 +42,18 @@ and make a call to `Pool`.
 How Does It Work?
 =================
 
+::
+    Create a process pool.
+
+    Pool [arguments]
+
+    arguments:
+
+      --workers:        Number of workers to make (default 1).
+      --taskfile:       Library file for workers to source.
+      --queuedir:       Directory to place worker queues (default ~/.poolq).
+      --pipefile:       Named pipe used to issue tasks (default ~/.pool).
+
 Making a call to the `Pool` function will spin off a series of worker processes
 that all listen on their own queue for instructions. The queue files are placed
 in the path given by `--queuedir` and are creating in the form
