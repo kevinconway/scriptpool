@@ -51,7 +51,7 @@ arguments:
   --workers:        Number of workers to make (default 1).
   --taskfile:       Library file for workers to source.
   --queuedir:       Directory to place worker queues (default ~/.poolq).
-  --pipefile:       Named pipe used to issue tasks (defaul ~/.pool).
+  --pipefile:       Named pipe used to issue tasks (default ~/.pool).
 BLOCK
 
         echo "$help_message"
