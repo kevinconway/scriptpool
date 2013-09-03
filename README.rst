@@ -43,6 +43,7 @@ How Does It Work?
 =================
 
 ::
+
     Create a process pool.
 
     Pool [arguments]
