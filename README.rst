@@ -44,6 +44,8 @@ How Does It Work?
 
 ::
 
+    Pool -h
+
     Create a process pool.
 
     Pool [arguments]
@@ -54,6 +56,9 @@ How Does It Work?
       --taskfile:       Library file for workers to source.
       --queuedir:       Directory to place worker queues (default ~/.poolq).
       --pipefile:       Named pipe used to issue tasks (default ~/.pool).
+      --logfile:        File to keep log data (default ~/pool.log).
+      --terminator:     Stop command (default 'terminate_pool').
+      --poll:           Idle wait time for a worker when queue is empty (default .1).
 
 Making a call to the `Pool` function will spin off a series of worker processes
 that all listen on their own queue for instructions. The queue files are placed
@@ -70,9 +75,9 @@ queue in a round-robin.
 Each worker pops the first line off the queue and executes it as a bash
 statement.
 
-Issuing the `terminate_pool` message, or sending SIGINT to the main process,
-will wipe all the worker queues and set them to terminate at the next available
-cycle.
+Issuing the message defined by `--terminator`, or sending SIGINT to the main
+process, will wipe all the worker queues and set them to terminate at the next
+available cycle.
 
 License
 =======
