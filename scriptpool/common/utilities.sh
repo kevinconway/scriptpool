@@ -2,7 +2,8 @@
 
 # This module contains misc. helper functions.
 
-_absolute_path () {
+
+get_absolute_path () {
 
   local path="$1"
 
