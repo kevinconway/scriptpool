@@ -5,7 +5,7 @@
 
 # This is the directory used by the queue implementation to store data.
 # By default it is a hidden directory in the current user's home.
-SCRIPTPOOL_FILEQUEUE_DIR="${SCRIPTPOOL_FILEQUEUE_DIR:-"~/.poolq"}"
+SCRIPTPOOL_FILEQUEUE_DIR="${SCRIPTPOOL_FILEQUEUE_DIR:-"~/.scriptpool"}"
 
 # This is the directory where the common libraries are stored.
 SCRIPTPOOL_COMMON_DIR="${SCRIPTPOOL_COMMON_DIR:-"/opt/scriptpool/common"}"

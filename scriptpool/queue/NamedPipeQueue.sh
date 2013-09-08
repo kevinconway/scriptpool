@@ -5,7 +5,7 @@
 
 # This is the directory used by the queue implementation to store data.
 # By default it is a hidden directory in the current user's home.
-SCRIPTPOOL_FILEQUEUE_DIR="${SCRIPTPOOL_FILEQUEUE_DIR:-"~/.poolq"}"
+SCRIPTPOOL_NAMEDPIPEQUEUE_DIR="${SCRIPTPOOL_NAMEDPIPEQUEUE_DIR:-"~/.scriptpool"}"
 
 # This is the directory where the common libraries are stored.
 SCRIPTPOOL_COMMON_DIR="${SCRIPTPOOL_COMMON_DIR:-"/opt/scriptpool/common"}"
@@ -35,7 +35,7 @@ prepare_queue () {
   # Set local vars.
   local identity=""
   local recreate="false"
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
@@ -106,7 +106,7 @@ BLOCK
 
 _create_queue_dirs () {
 
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   # Ensure that the queue base directory is created.
   if [[ ! -d "$q_dir" ]]; then
@@ -167,7 +167,7 @@ destroy_queue () {
 
   # Set local vars.
   local identity=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
@@ -238,7 +238,7 @@ push_message () {
   local message=""
   local message_identity="$(cat /proc/sys/kernel/random/uuid)"
 
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
@@ -326,7 +326,7 @@ pop_message () {
   # Set local vars.
   local identity=""
   local message=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
@@ -400,7 +400,7 @@ set_response () {
   local messageid=""
   local status="0"
   local response=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
@@ -479,7 +479,7 @@ get_response () {
   # Set local vars.
   local messageid=""
   local response=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_FILEQUEUE_DIR")"
+  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
 
   while true;
   do
