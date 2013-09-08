@@ -522,7 +522,7 @@ BLOCK
 
   fi
 
-  if [[ ! -e "$workspace/results/$messageid" ]]; then
+  if [[ ! -e "$q_dir/results/$messageid" ]]; then
 
     echo ""
     return 0
