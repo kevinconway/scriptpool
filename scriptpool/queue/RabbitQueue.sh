@@ -561,6 +561,13 @@ BLOCK
 
   fi
 
+  if [[ ! -e "$workspace/results/$messageid" ]]; then
+
+    echo ""
+    return 0
+
+  fi
+
   response="$(cat "$workspace/results/$messageid")"
 
   echo "$response"
