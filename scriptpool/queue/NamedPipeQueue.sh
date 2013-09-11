@@ -5,7 +5,7 @@
 
 # This is the directory used by the queue implementation to store data.
 # By default it is a hidden directory in the current user's home.
-SCRIPTPOOL_NAMEDPIPEQUEUE_DIR="${SCRIPTPOOL_NAMEDPIPEQUEUE_DIR:-"~/.scriptpool"}"
+SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE="${SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE:-"~/.scriptpool"}"
 
 # This is the directory where the common libraries are stored.
 SCRIPTPOOL_COMMON_DIR="${SCRIPTPOOL_COMMON_DIR:-"/opt/scriptpool/common"}"
@@ -26,7 +26,7 @@ prepare_queue () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the prepare_queue function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -35,7 +35,7 @@ prepare_queue () {
   # Set local vars.
   local identity=""
   local recreate="false"
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -57,7 +57,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -80,25 +80,38 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   _create_queue_dirs
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not create queue workspace ($workspace)."
+    return 1
+
+  fi
 
   # Destroy queue file if recreate flag is set.
   if [[ "$recreate" == "true" ]]; then
 
     destroy_queue --identity="$identity"
+    if [[ $? != 0 ]]; then
+
+      ERROR "Could not destroy queue ($identity)."
+      return 1
+
+    fi
 
   fi
 
   # Create the queue file.
-  mkfifo "$q_dir/queues/$identity" 1>&2 2>/dev/null
+  mkfifo "$workspace/queues/$identity" 1>&2 2>/dev/null
   if [[ $? != 0 ]]; then
 
-    ERROR "Could not create queue file ($q_dir/queues/$identity)."
-    exit 1
+    ERROR "Could not create queue file ($workspace/queues/$identity)."
+    return 1
+
   fi
 
 }
@@ -106,42 +119,42 @@ BLOCK
 
 _create_queue_dirs () {
 
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   # Ensure that the queue base directory is created.
-  if [[ ! -d "$q_dir" ]]; then
+  if [[ ! -d "$workspace" ]]; then
 
-    mkdir -p "$q_dir" 1>&2 2>/dev/null
+    mkdir -p "$workspace" 1>&2 2>/dev/null
     if [[ $? != 0 ]]; then
 
-      ERROR "Could not create queue base directory ($q_dir)."
-      exit 1
+      ERROR "Could not create queue base directory ($workspace)."
+      return 1
 
     fi
 
   fi
 
   # Ensure that the queue storage directory is created.
-  if [[ ! -d "$q_dir/queues" ]]; then
+  if [[ ! -d "$workspace/queues" ]]; then
 
-    mkdir -p "$q_dir/queues" 1>&2 2>/dev/null
+    mkdir -p "$workspace/queues" 1>&2 2>/dev/null
     if [[ $? != 0 ]]; then
 
-      ERROR "Could not create queue storage directory ($q_dir/queues)."
-      exit 1
+      ERROR "Could not create queue storage directory ($workspace/queues)."
+      return 1
 
     fi
 
   fi
 
   # Ensure that the queue results directory is created.
-  if [[ ! -d "$q_dir/results" ]]; then
+  if [[ ! -d "$workspace/results" ]]; then
 
-    mkdir -p "$q_dir/results" 1>&2 2>/dev/null
+    mkdir -p "$workspace/results" 1>&2 2>/dev/null
     if [[ $? != 0 ]]; then
 
-      ERROR "Could not create queue results directory ($q_dir/results)."
-      exit 1
+      ERROR "Could not create queue results directory ($workspace/results)."
+      return 1
 
     fi
 
@@ -159,7 +172,7 @@ destroy_queue () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the destroy_queue function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -167,7 +180,7 @@ destroy_queue () {
 
   # Set local vars.
   local identity=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -188,7 +201,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -206,13 +219,19 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
-  if [[ -e "$q_dir/queues/$identity" ]]; then
+  if [[ -e "$workspace/queues/$identity" ]]; then
 
-    rm -rf "$q_dir/queues/$identity" 1>&2 2>/dev/null
+    rm -rf "$workspace/queues/$identity" 1>&2 2>/dev/null
+    if [[ $? != 0 ]]; then
+
+      ERROR "Could not destroy queue file ($workspace/queues/$identity)."
+      return 1
+
+    fi
 
   fi
 
@@ -227,7 +246,7 @@ push_message () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the push_message function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -238,7 +257,7 @@ push_message () {
   local message=""
   local message_identity="$(cat /proc/sys/kernel/random/uuid)"
 
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -264,7 +283,7 @@ output:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -287,7 +306,7 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
@@ -295,14 +314,18 @@ BLOCK
   if [[ "$(echo "$message" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Message cannot be empty."
-    exit 1
+    return 1
 
   fi
 
-  # The FD 7 has no significance. This function simply needed an FD in RW mode
-  # to allow nonblocking writes to the named pipe.
+  # This command blocks until a consumer calls pop_message on the same queue.
+  echo "$message_identity $message" >> "$workspace/queues/$identity"
+  if [[ $? != 0 ]]; then
 
-  echo "$message_identity $message" >> "$q_dir/queues/$identity" &
+    ERROR "Could not write message ($message) to queue ($workspace/queues/$identity)."
+    return 1
+
+  fi
 
   echo "$message_identity"
 
@@ -317,7 +340,7 @@ pop_message () {
   if [[ $? != 0 ]];
   then
     echo "The getopt call failed in the pop_message function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -326,7 +349,7 @@ pop_message () {
   # Set local vars.
   local identity=""
   local message=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -353,7 +376,7 @@ output:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -371,11 +394,18 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     echo "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
-  message="$(head -n 1 "$q_dir/queues/$identity")"
+  # This command blocks until push_message is called on the same queue.
+  message="$(head -n 1 "$workspace/queues/$identity")"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not read from queue ($workspace/queues/$identity)."
+    return 1
+
+  fi
 
   echo "$message"
 
@@ -390,7 +420,7 @@ set_response () {
   if [[ $? != 0 ]];
   then
     echo "The getopt call failed in the set_response function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -400,7 +430,7 @@ set_response () {
   local messageid=""
   local status="0"
   local response=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -423,7 +453,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --messageid)
@@ -451,13 +481,25 @@ BLOCK
   if [[ "$(echo "$messageid" | sed s/\ //g)" == "" ]]; then
 
     echo "Message id cannot be empty."
-    exit 1
+    return 1
 
   fi
 
-  touch "$q_dir/results/$messageid" 1>&2 2>/dev/null
+  touch "$workspace/results/$messageid" 1>&2 2>/dev/null
+  if [[ $? != 0 ]]; then
 
-  echo "$status $response" > "$q_dir/results/$messageid"
+    ERROR "Could not create results file ($workspace/results/$messageid)."
+    return 1
+
+  fi
+
+  echo "$status $response" > "$workspace/results/$messageid"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not write result ($status $response) to ($workspace/results/$messageid)."
+    return 1
+
+  fi
 
 }
 
@@ -470,7 +512,7 @@ get_response () {
   if [[ $? != 0 ]];
   then
     echo "The getopt call failed in the get_response function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -479,7 +521,7 @@ get_response () {
   # Set local vars.
   local messageid=""
   local response=""
-  local q_dir="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_DIR")"
+  local workspace="$(get_absolute_path "$SCRIPTPOOL_NAMEDPIPEQUEUE_WORKSPACE")"
 
   while true;
   do
@@ -500,7 +542,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --messageid)
@@ -518,18 +560,24 @@ BLOCK
   if [[ "$(echo "$messageid" | sed s/\ //g)" == "" ]]; then
 
     echo "Message id cannot be empty."
-    exit 1
+    return 1
 
   fi
 
-  if [[ ! -e "$q_dir/results/$messageid" ]]; then
+  if [[ ! -e "$workspace/results/$messageid" ]]; then
 
     echo ""
     return 0
 
   fi
 
-  response="$(cat "$q_dir/results/$messageid")"
+  response="$(cat "$workspace/results/$messageid")"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not read from results file ($workspace/results/$messageid)."
+    return 1
+
+  fi
 
   echo "$response"
 

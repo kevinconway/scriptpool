@@ -34,7 +34,7 @@ prepare_queue () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the prepare_queue function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -66,7 +66,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -89,17 +89,36 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   _create_workspace
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not create workspace ($SCRIPTPOOL_RABBITQUEUE_WORKSPACE)."
+    return 1
+
+  fi
+
   _download_rabbit_admin
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not download rabbit admin client."
+    return 1
+
+  fi
 
   # Destroy queue file if recreate flag is set.
   if [[ "$recreate" == "true" ]]; then
 
     destroy_queue --identity="$identity"
+    if [[ $? != 0 ]]; then
+
+      ERROR "Could not destroy queue ($identity)."
+      return 1
+
+    fi
 
   fi
 
@@ -108,7 +127,7 @@ BLOCK
   if [[ $? != 0 ]]; then
 
     ERROR "Could not create queue for identity ($identity)."
-    exit 1
+    return 1
   fi
 
 }
@@ -125,7 +144,7 @@ _create_workspace () {
     if [[ $? != 0 ]]; then
 
       ERROR "Could not create workspace at ($workspace)."
-      exit 1
+      return 1
 
     fi
 
@@ -138,7 +157,7 @@ _create_workspace () {
     if [[ $? != 0 ]]; then
 
       ERROR "Could not create results dir at ($workspace/results)."
-      exit 1
+      return 1
 
     fi
 
@@ -158,7 +177,7 @@ _download_rabbit_admin () {
     if [[ $? != 0 ]]; then
 
       ERROR "Could not create workspace at ($workspace)."
-      exit 1
+      return 1
 
     fi
 
@@ -167,8 +186,23 @@ _download_rabbit_admin () {
   if [[ ! -e "$workspace/rabbitmqadmin" ]]; then
 
     pushd "$workspace" > /dev/null
+
     wget http://localhost:15672/cli/rabbitmqadmin 1>&2 2>/dev/null
+    if [[ $? != 0 ]]; then
+
+      ERROR "Could wget rabbit client (http://localhost:15672/cli/rabbitmqadmin)."
+      return 1
+
+    fi
+
     chmod +x ./rabbitmqadmin
+    if [[ $? != 0 ]]; then
+
+      ERROR "Could not set execution bit for rabbit client ($workspace/rabbitmqadmin)."
+      return 1
+
+    fi
+
     popd > /dev/null
 
   fi
@@ -185,7 +219,7 @@ destroy_queue () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the destroy_queue function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -215,7 +249,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -233,11 +267,17 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   "$rabbit_client" delete queue name="$identity" > /dev/null
+  if [[ $? != 0 ]]; then
+
+      ERROR "Could not destroy queue with client ($identity)."
+      return 1
+
+    fi
 
 }
 
@@ -250,7 +290,7 @@ push_message () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the push_message function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -288,7 +328,7 @@ output:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -311,18 +351,24 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   if [[ "$(echo "$message" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Message cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   "$rabbit_client" publish routing_key="$identity" payload="$message_identity $message" > /dev/null
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not publish message ($message) on queue ($identity)."
+    return 1
+
+  fi
 
   echo "$message_identity"
 
@@ -337,7 +383,7 @@ pop_message () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the pop_message function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -374,7 +420,7 @@ output:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --identity)
@@ -392,7 +438,7 @@ BLOCK
   if [[ "$(echo "$identity" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Identity cannot be empty."
-    exit 1
+    return 1
 
   fi
 
@@ -405,7 +451,20 @@ BLOCK
   # need to change.
   # TODO(kevinconway): Look into parsing the mysql style table for data.
   message="$("$rabbit_client" --format=kvp get queue="$identity" requeue=false)"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not retrieve message for queue ($identity)."
+    return 1
+
+  fi
+
   message="$(echo "$message" | sed s/".*payload=\"\(.*\)\" payload_bytes.*"/\\1/g)"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not parse message from queue ($identity)."
+    return 1
+
+  fi
 
   # The rabbit client returns "No items" when the queue is empty.
   # The "No items" message is not affected by the sed rewrite.
@@ -429,7 +488,7 @@ set_response () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the set_response function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -462,7 +521,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --messageid)
@@ -490,13 +549,25 @@ BLOCK
   if [[ "$(echo "$messageid" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Message id cannot be empty."
-    exit 1
+    return 1
 
   fi
 
   touch "$workspace/results/$messageid" 1>&2 2>/dev/null
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not create results file ($workspace/results/$messageid)"
+    return 1
+
+  fi
 
   echo "$status $response" > "$workspace/results/$messageid"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not write ($status $response) to ($workspace/results/$messageid)."
+    return 1
+
+  fi
 
 }
 
@@ -509,7 +580,7 @@ get_response () {
   if [[ $? != 0 ]];
   then
     ERROR "The getopt call failed in the get_response function."
-    exit 1
+    return 1
   fi
 
   # Set vars in scope.
@@ -539,7 +610,7 @@ arguments:
 BLOCK
 
         echo "$help_message"
-        exit 1
+        return 1
         shift;;
 
       --messageid)
@@ -557,7 +628,7 @@ BLOCK
   if [[ "$(echo "$messageid" | sed s/\ //g)" == "" ]]; then
 
     ERROR "Message id cannot be empty."
-    exit 1
+    return 1
 
   fi
 
@@ -569,6 +640,12 @@ BLOCK
   fi
 
   response="$(cat "$workspace/results/$messageid")"
+  if [[ $? != 0 ]]; then
+
+    ERROR "Could not read results file ($workspace/results/$messageid)."
+    return 1
+
+  fi
 
   echo "$response"
 
