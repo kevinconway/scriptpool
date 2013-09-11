@@ -97,6 +97,12 @@ BLOCK
 
     # Grab a new message off the queue.
     message="$(pop_message --identity="$identity")"
+    if [[ $? != 0 ]]; then
+
+      ERROR "Worker ($identity) failed to pop message ($message)."
+      exit 1
+
+    fi
 
     # Split the message and the message id
     messageid="$(echo "$message" | awk '{ print $1 }')"
@@ -114,6 +120,13 @@ BLOCK
     if [[ "$message" == "$terminator" ]]; then
 
       set_response --messageid="$messageid" --status=0 --response="$message"
+      if [[ $? != 0 ]]; then
+
+        ERROR "Worker ($identity) failed to set response ($messageid $message)."
+        exit 1
+
+      fi
+
       exit 0
 
     fi
@@ -121,6 +134,12 @@ BLOCK
     response="$(receive_message "$message" 2>&1)"
 
     set_response --messageid="$messageid" --status=$? --response="$response"
+    if [[ $? != 0 ]]; then
+
+        ERROR "Worker ($identity) failed to set response ($messageid $message)."
+        exit 1
+
+      fi
 
   done
 
