@@ -22,7 +22,9 @@ and matched. Current implementations are:
 
 - Pool
 
-  - *Work in progress*
+  - Named Pipe Pool
+
+    This pool listens on a named pipe for messages to dispatch.
 
 - Worker
 
@@ -61,31 +63,43 @@ Show Me
     #!/bin/bash
 
     # Load the desired implementations.
-    source /opt/scriptpool/FileQueue.sh
-    source /opt/scriptpool/BashWorker.sh
+    source /opt/scriptpool/queue/FileQueue.sh
+    source /opt/scriptpool/worker/BashWorker.sh
+    source /opt/scriptpool/pool/NamedPipePool.sh
 
-    # Prepare a queue for the worker (normally handled by the pool).
-    prepare_queue --identity="MyWorker"
+    # Spin up a pool of 8 worker processes.
+    Pool --workers=8 &
 
-    # Spin off a worker process that listens on that queue.
-    Worker --identity="MyWorker" &
-
-    # Put a message on the queue. A unique message id is returned.
-    message_id="$(push_message --identity="MyWorker" --message="touch ~/test")"
-
-    echo "Message ID: ($message_id)"
-
-    # Small sleep just to guarantee that the action is done.
+    # Wait a second to make sure the pool is spun up.
     sleep 1
 
-    # A response is recorded once the action is complete. This shows the exit
-    # code of the action as well as the output from the action.
-    response="$(get_response --messageid="$message_id")"
+    # Have one of the workers create the ~/hello file.
+    echo "touch ~/hello" > ~/.scriptpool/poolpipe
 
-    echo "Response: ($response)"
+    # Wait a half second to make sure the file is created.
+    sleep .5
 
-    # Signal the worker to spin down.
-    push_message --identity="$MyWorker" --message="terminate_worker"
+    # Have one of the workers put content into the ~/hello file.
+    echo "echo 'HELLO' > ~/hello" > ~/.scriptpool/poolpipe
+
+    # Wait a half second to make sure the content is written.
+    sleep .5
+
+    # Have all workers shut down. This includes the pool process.
+    echo "terminate_pool" > ~/.scriptpool/poolpipe
+
+    # See the results.
+    cat ~/hello
+
+Obviously this is a trivial example. More complex behaviour such as long
+running tasks, task chaining, and custom message handling are possible with
+the ProxyWorker.
+
+How Does It Work?
+=================
+
+Full scale usage and development documentation in progress. They will be
+published via ReadTheDocs.
 
 Setup Instructions
 ==================
@@ -94,12 +108,6 @@ ScriptPool is simply a bash function library. Just source the implementations
 that you want to use in your script.
 
 Be default, the library expects itself to be installed in /opt.
-
-How Does It Work?
-=================
-
-Full scale usage and development documentation in progress. They will be
-published via ReadTheDocs.
 
 License
 =======
